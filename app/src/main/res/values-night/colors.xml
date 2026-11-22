@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark mode: pure black (AMOLED) -->
+    <color name="bg">#000000</color>
+    <color name="surface">#0B0B0B</color>
+    <color name="surface2">#151515</color>
+    <color name="line">#242424</color>
+    <color name="line2">#4D4D4D</color>
+    <color name="fg">#FFFFFF</color>
+    <color name="fgPressed">#D6D6D6</color>
+    <color name="disabled">#3A3A3A</color>
+    <color name="text2">#9A9A9A</color>
+    <color name="text3">#5C5C5C</color>
+    <color name="err">#FF8A8A</color>
+    <color name="iconBg">#000000</color>
+</resources>

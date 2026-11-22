@@ -1,0 +1,59 @@
+name: Release
+
+# Builds the APK, signs it with the same key as the version installed on the phone and publishes it as release v1.0.<run number>.
+# The app checks this release every time it opens and offers to install the newer one.
+# One-time setup (Settings > Secrets and variables > Actions): VD_KEY_PEM_B64 and VD_CERT_DER_B64
+# (base64 of keys/videodownloader/key.pem and cert.der).
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", "*.kts", "gradle/**", "gradle.properties", ".github/workflows/release.yml", "tools/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build the APK
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease -PappCode=$((1000 + CODE)) -PappVersion=1.0.$CODE
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          cp "$APK" VideoDownloader-unsigned.apk
+
+      - name: Sign with the app's key
+        env:
+          KEY_PEM_B64: ${{ secrets.VD_KEY_PEM_B64 }}
+          CERT_DER_B64: ${{ secrets.VD_CERT_DER_B64 }}
+        run: |
+          if [ -z "$KEY_PEM_B64" ] || [ -z "$CERT_DER_B64" ]; then
+            echo "::error::Add the secrets VD_KEY_PEM_B64 and VD_CERT_DER_B64 (see the comment at the top of this file)."; exit 1
+          fi
+          pip install cryptography
+          mkdir -p key
+          echo "$KEY_PEM_B64" | base64 -d > key/key.pem
+          echo "$CERT_DER_B64" | base64 -d > key/cert.der
+          python tools/apk_repack.py VideoDownloader-unsigned.apk VideoDownloader.apk key --cn VideoDownloader
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v1.0.$CODE" VideoDownloader.apk \
+            --title "VideoDownloader v1.0.$CODE" \
+            --notes "Phone app (Android 10+). The app checks for updates every time it opens." --latest
