@@ -24,7 +24,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -32,6 +31,7 @@ jobs:
       - name: Build the APK
         run: |
           chmod +x gradlew
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           ./gradlew --no-daemon assembleRelease -PappCode=$((1000 + CODE)) -PappVersion=1.0.$CODE
           APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
           cp "$APK" VideoDownloader-unsigned.apk
