@@ -58,6 +58,15 @@ jobs:
           echo "$CERT_DER_B64" | base64 -d > key/cert.der
           python tools/apk_repack.py VideoDownloader-unsigned.apk VideoDownloader.apk key --cn VideoDownloader
 
+      - name: Keep the unsigned APK in the android-build pre-release (never "latest", so the app doesn't offer it)
+        if: steps.sign.outputs.signed == 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android-build > /dev/null 2>&1 || gh release create android-build --prerelease --target "$GITHUB_SHA" \
+            --title "Phone app test build (unsigned)" --notes "Unsigned APK (version 1.0.$CODE). Sign it with keys/videodownloader before installing."
+          gh release upload android-build VideoDownloader-unsigned.apk --clobber
+
       - name: Publish
         if: steps.sign.outputs.signed == 'yes'
         env:
